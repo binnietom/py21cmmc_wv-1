@@ -56,9 +56,7 @@ Overview
 
 .. end-badges
 
-A set of python bindings for 21cmFAST allowing native Python plugins for 21cmMC.
-
-Note: this package has just started. It doesn't do any MCMC at the moment.
+A plugin for 21CMMC implementing likelihoods based on wavelets rather than power spectrum.
 
 * Free software: MIT license
 
@@ -80,15 +78,11 @@ For development, it is easiest to do (from top-level directory of this package):
 Quick Usage
 ===========
 
-This is meant as a plugin for ``py21cmmc``. You should read the docs for that package first. The primary functionality
+This is meant as a plugin for ``21CMMC``. You should read the docs for that package first. The primary functionality
 added by this plugin is a set of ``Likelihood``s which can be passed directly to the ``run_mcmc`` function of
-``py21cmmc`` as the likelihoods controlling the MCMC.
+``21CMMC`` as the likelihoods controlling the MCMC.
 
-The likelihoods contained in this plugin are dependent on having the core modules from ``py21cmmc_fg`` loaded in the
-``CosmoHammer`` ``ChainContext``.
-
-In addition to providing simple plugin capability, the likelihoods here also contain a simulation method which can be
-used to *create* mock data identical to that which it claims to fit.
+The likelihoods in this plugin are also compatible with the core modules provided in ``py21cmmc_fg``.
 
 Documentation
 =============
