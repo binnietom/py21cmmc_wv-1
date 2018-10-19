@@ -2,14 +2,17 @@
 A module defining CosmoHammer likelihoods for addition into the standard 21cmMC structure.
 """
 
+from py21cmmc_fg.util import lognormpdf
+
 from py21cmmc.mcmc import core, likelihood
-from .morlet import morlet_transform
+from .morlet import morlet_transform_c
 from powerbox.tools import angular_average_nd
 from powerbox.dft import fft
 import numpy as np
+from scipy import special as sp
 
 
-class LikelihoodWaveletsMorlet(likelihood.LikelihoodBase):
+class LikelihoodWaveletsMorlet(likelihood.LikelihoodBaseFile):
     """
     This likelihood is based on Morlet wavelets, as found in eg. Trott+2016.
 
@@ -18,55 +21,74 @@ class LikelihoodWaveletsMorlet(likelihood.LikelihoodBase):
     """
     required_cores = [core.CoreLightConeModule]
 
-    def __init__(self, datafile, n_kperp=None, **kwargs):
-        super().__init__(datafile, **kwargs)
-        # Determine a nice number of bins.
-        self.n_kperp = n_kperp
-        self.datafile = datafile
+    def __init__(self, bins=None, model_uncertainty=0.15, **kwargs):
+        super().__init__(**kwargs)
 
-    def setup(self):
-        super().setup()
+        self.bins = bins
+        self.model_uncertainty = model_uncertainty
 
-    def computeLikelihood(self, ctx, storage):
-        model = self.simulate(ctx)
+    def computeLikelihood(self, model):
 
-        storage.update(**model)
+        model = model[0]
 
-        var = self.compute_variance(model['wavelets'])
-        return -np.sum((model['wavelets'] - self.data['wavelets'])**2/var)
+        x = self.data[0]['wavelets']
+        mu = model['wavelets']
+
+        # TODO: data/model should probably be transposed in some way.
+        return lognormpdf(
+            x=x.reshape((-1, x.shape[-1])),
+            mu=mu.reshape((-1, mu.shape[-1])),
+            cov=self.compute_covariance(model['wavelets'], model['kpar'], model['centres'])
+        )
 
     @staticmethod
-    def compute_wavelets(lightcone, n_kperp):
+    def compute_wavelets(lightcone, bins):
 
         # First get "visibilities"
-        vis, kperp = fft(lightcone.brightness_temp, L=lightcone.user_params.HII_DIM, axes=(0, 1))
+        vis, kperp = fft(lightcone.brightness_temp, L=lightcone.user_params.BOX_LEN, axes=(0, 1))
 
-        # Determine a nice number of bins.
-        if n_kperp is None:
-            n_kperp = int(np.product(kperp.shape) ** (1. / 2.)/2.2)
+        # vis has shape (HII_DIM, HII_DIM, HII_DIM)
 
         # Do wavelet transform
-        wvlts, kpar, _ = morlet_transform(vis, lightcone.lightcone_coords)
+        wvlts, kpar, _ = morlet_transform_c(vis, lightcone.lightcone_coords)
+
+        # wvlts has shape (vis.shape + len(kpar))
 
         # Now square it...
         wvlts = np.abs(wvlts)**2
 
+        # Determine a nice number of bins.
+        if bins is None:
+            bins = int((np.product(kperp.shape)*len(kpar)) ** (1. / 3.)/2.2)
+
         # And angularly average
-        wvlts, kperp = angular_average_nd(wvlts, list(kperp)+[lightcone.lightcone_coords, kpar], n=2, bins=n_kperp, bin_ave=False)
+        wvlts, kperp = angular_average_nd(wvlts.transpose((0,1,3,2)), list(kperp)+[kpar, lightcone.lightcone_coords],
+                                      n=2, bins=bins, bin_ave=False, get_variance=False)
 
         return wvlts, kperp, kpar, lightcone.lightcone_coords
 
-    def compute_covariance(self, nrealisations=200):
-        wvlt = []
-        for i in range(nrealisations):
-            wvlt.append(self.simulate(self.default_ctx)['wavelets'])
+    def compute_covariance(self, wvlts, kpar, dist):
 
-        # Now get covariance of them all...
-        # Only *co*-vary in the "centres" direction.
-        # Wavelets has shape (kperp, centres, kpar).
-        cov = np.cov(wvlt.transpose(0,2,1))
-        return (0.15*wvlt)**2
+        # wvlts (from compute_wavelets) has shape (Nkperp, Nkpar, Nz).
+        # only the Nz will correlate (on the assumption that power is independent in each mode).
+
+        cov = []
+        D = np.abs(np.add.outer(dist, -dist))
+
+        for ix in range(wvlts.shape[0]):
+            for ikp in range(wvlts.shape[1]):
+                wvlt = wvlts[ix, ikp]
+                thiscorr =  (1 - sp.erf(kpar[ikp] * D / (2*np.sqrt(2)))) ** 2
+                cov.append(thiscorr * self.model_uncertainty**2 * np.outer(wvlt, wvlt))
+
+        return cov
 
     def simulate(self, ctx):
-        wvlt, kperp, kpar, centres = self.compute_wavelets(ctx.get("lightcone"), self.n_kperp)
-        return dict(wavelets=wvlt, kperp=kperp, kpar=kpar, centres=centres)
+        wvlt, kperp, kpar, centres = self.compute_wavelets(ctx.get("lightcone"), self.bins)
+        return [dict(wavelets=wvlt, kperp=kperp, kpar=kpar, centres=centres)]
+
+    @property
+    def lightcone_module(self):
+        for m in self.LikelihoodComputationChain.getCoreModules():
+            if isinstance(m, self.required_cores[0]):
+                return m

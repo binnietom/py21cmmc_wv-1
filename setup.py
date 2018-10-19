@@ -69,53 +69,19 @@ setup(
         'py21cmmc_fg',
         # eg: 'aspectlib==1.1.1', 'six>=1.7',
     ],
-    extras_require={
-        # eg:
-        #   'rst': ['docutils>=0.11'],
-        #   ':python_version=="2.6"': ['argparse'],
-    },
-    # entry_points={
-    #     'console_scripts': [
-    #         'py21cmmc = py21cmmc.cli:main',
-    #     ]
-    # },
-    # cffi_modules=["build_cffi.py:ffi"],
     ext_modules=[
+        # Extension(
+        #     'py21cmmc_wv.transforms',
+        #     sources=['py21cmmc_wv/transforms.f90'],
+        #     # libraries=['m', 'gsl', 'gslcblas', 'fftw3f_omp', 'fftw3f'],
+        #     # include_dirs=['/usr/local/include', 'src/py21cmmc/_21cmfast'],
+        #     extra_compile_args = ['-Ofast']
+        # ),
         Extension(
-            'py21cmmc_wv.transforms',
-            sources=['py21cmmc_wv/transforms.f90'],
-            # libraries=['m', 'gsl', 'gslcblas', 'fftw3f_omp', 'fftw3f'],
-            # include_dirs=['/usr/local/include', 'src/py21cmmc/_21cmfast'],
+            'py21cmmc_wv.ctransforms',
+            ['py21cmmc_wv/transforms.c'],
             extra_compile_args = ['-Ofast']
         ),
-    #     Extension(
-    #         'py21cmmc._21cmfast.ComputingTau_e',
-    #         sources=['src/py21cmmc/_21cmfast/ComputingTau_e.c'],
-    #         libraries=['m', 'gsl', 'gslcblas', 'fftw3f_omp', 'fftw3f'],
-    #         include_dirs=['/usr/local/include', 'src/py21cmmc/_21cmfast'],
-    #         extra_compile_args=['-fopenmp', '-Ofast', '-w']
-    #     ),
-    #     DExtension('py21cmmc._21cmfast.swig_library',
-    #               ['src/py21cmmc/_21cmfast/wrapper.i', 'src/py21cmmc/_21cmfast/drive_21cmMC_streamlined.c'],
-    #               library_dirs=['/opt/local/lib'],
-    #               libraries=['m', 'gsl', 'gslcblas', 'fftw3f_omp', 'fftw3f'],
-    #               include_dirs=['/usr/local/include', 'src/py21cmmc/_21cmfast'],
-    #               extra_compile_args=['-fopenmp', '-Ofast']
-    #               )
-        # Extension(
-        #     'py21cmmc._21cmfast.init',
-        #     sources=['src/py21cmmc/_21cmfast/init.c'],
-        #     libraries=['m', 'gsl', 'gslcblas', 'fftw3f_omp', 'fftw3f'],
-        #     include_dirs=['/usr/local/include', 'src/py21cmmc/_21cmfast'],
-        #     extra_compile_args = ['-fopenmp', '-Ofast']
-        # ),
-        # Extension(
-        #     'py21cmmc._21cmfast.perturb_field',
-        #     sources=['src/py21cmmc/_21cmfast/perturb_field.c'],
-        #     libraries=['m', 'gsl', 'gslcblas', 'fftw3f_omp', 'fftw3f'],
-        #     include_dirs=['/usr/local/include', 'src/py21cmmc/_21cmfast'],
-        #     extra_compile_args = ['-fopenmp', '-Ofast']
-        # )
-    ]
-    # ],
+    ],
+    #cffi_modules=["build_cffi.py:ffi"],
 )

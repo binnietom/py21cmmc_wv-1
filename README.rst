@@ -1,6 +1,6 @@
-========
-Overview
-========
+===========
+py21cmmc_wv
+===========
 
 .. start-badges
 
@@ -57,8 +57,6 @@ Overview
 .. end-badges
 
 A plugin for 21CMMC implementing likelihoods based on wavelets rather than power spectrum.
-
-* Free software: MIT license
 
 Installation
 ============

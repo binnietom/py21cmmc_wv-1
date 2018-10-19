@@ -21,7 +21,7 @@ subroutine morlet(nx, nt, nf, realdata, imagdata, t, tc, f,rl_out, im_out)
             extent = 1/(f(jf)*sqrt(2.d0))
             thisn = ceiling(5*extent/dt)
             do jc=1,nt
-                do jt=max(1, jc-thisn),min(jc+thisn, nt)
+                do jt=max(1, jc-thisn), min(jc+thisn, nt)
                     exponent = f(jf)*(t(jt) - tc(jc))
                     mag = exp(-exponent**2/2) ! Cath has a divide by two here in the CODE only...
 
