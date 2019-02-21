@@ -66,22 +66,13 @@ setup(
     ],
     install_requires=[
         'py21cmmc',
-        'py21cmmc_fg',
         # eg: 'aspectlib==1.1.1', 'six>=1.7',
     ],
     ext_modules=[
-        # Extension(
-        #     'py21cmmc_wv.transforms',
-        #     sources=['py21cmmc_wv/transforms.f90'],
-        #     # libraries=['m', 'gsl', 'gslcblas', 'fftw3f_omp', 'fftw3f'],
-        #     # include_dirs=['/usr/local/include', 'src/py21cmmc/_21cmfast'],
-        #     extra_compile_args = ['-Ofast']
-        # ),
-        Extension(
+       Extension(
             'py21cmmc_wv.ctransforms',
             ['py21cmmc_wv/transforms.c'],
             extra_compile_args = ['-Ofast']
         ),
     ],
-    #cffi_modules=["build_cffi.py:ffi"],
 )
