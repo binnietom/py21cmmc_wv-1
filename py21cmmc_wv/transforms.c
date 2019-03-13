@@ -105,7 +105,7 @@ void cmorlet(unsigned int ndata, unsigned int n_nu, unsigned int n_eta,
                 xx = cexp(-exponent*(exponent/2 + fourier_b*I));
                 
                 for (ix=0;ix<ndata;ix++){  // Loop through different data
-                    if(j_idx + out_idx > n_eta*n_nu*ndata){
+                    if(jidx + out_idx > n_eta*n_nu*ndata){
                         printf("Out of bounds on: jeta=%d, jnuc=%d, jnu=%d, ix=%d, jidx=%d, out_idx=%d", jeta, jnuc, jnu, ix, jidx, out_idx);
                     }
                     out[jidx + out_idx] += data[data_idx]*xx;
