@@ -37,7 +37,7 @@ def morlet_transform_c(data, nu, convergence_extent=10.0, fourier_b = 1,
 
     morlet = ctypes.CDLL(fl).cmorlet
     morlet.argtypes = [
-        ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_double, ctypes.c_double,
+        ctypes.c_uint, ctypes.c_uint, ctypes.c_uint, ctypes.c_double, ctypes.c_double,
         np.ctypeslib.ndpointer("complex128", flags="C_CONTIGUOUS"),
         np.ctypeslib.ndpointer(ctypes.c_double, flags="C_CONTIGUOUS"),
         np.ctypeslib.ndpointer(ctypes.c_double, flags="C_CONTIGUOUS"),

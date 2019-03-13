@@ -32,7 +32,8 @@
 //    }
 //}
 
-void cmorlet(int ndata, int n_nu, int n_eta, double conv_ext, double fourier_b,
+void cmorlet(unsigned int ndata, unsigned int n_nu, unsigned int n_eta,
+             double conv_ext, double fourier_b,
              double complex *data, double *nu, double *eta, int nthreads,
              double complex *out){
     /*
@@ -74,8 +75,8 @@ void cmorlet(int ndata, int n_nu, int n_eta, double conv_ext, double fourier_b,
             The resulting Morlet transform.
     */
 
-    unsigned int ix, jnuc,jeta, jnu, thisn, jidx;
-    double exponent, mag, dt;
+    unsigned int ix, jnuc,jeta, jnu, thisn, jidx, jmin, jmax;
+    double exponent;
     double complex xx;
 
     double sqrt2 = sqrt(2.0);
