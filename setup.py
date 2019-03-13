@@ -72,7 +72,7 @@ setup(
        Extension(
             'py21cmmc_wv.ctransforms',
             ['py21cmmc_wv/transforms.c'],
-            extra_compile_args = ['-Ofast']
+            extra_compile_args = ['-Ofast', '-fopenmp']
         ),
     ],
 )

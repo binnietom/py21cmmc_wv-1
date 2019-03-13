@@ -50,9 +50,9 @@ class LikelihoodWaveletsMorlet(likelihood.LikelihoodBaseFile):
         # vis has shape (HII_DIM, HII_DIM, lightcone_dim)
 
         # Do wavelet transform
-        wvlts, kpar, _ = morlet_transform_c(vis, lightcone.lightcone_coords)
+        wvlts, kpar, _ = morlet_transform_c(vis.T, lightcone.lightcone_coords)
 
-        # wvlts has shape (vis.shape + len(kpar)) corresponding to (u,v, nu_c, eta)
+        # wvlts has shape (len(kpar) + vis.T.shape) corresponding to (eta, nu_c, u,v)
 
         # Now square it...
         wvlts = np.abs(wvlts) ** 2
@@ -63,7 +63,7 @@ class LikelihoodWaveletsMorlet(likelihood.LikelihoodBaseFile):
 
         # And angularly average
         wvlts, k = angular_average_nd(
-            wvlts.transpose((0, 1, 3, 2)),
+            wvlts.transpose((2, 3, 0, 1)),
             list(kperp) + [kpar, lightcone.lightcone_coords],
             n=3, bins=bins, bin_ave=False, get_variance=False
         )

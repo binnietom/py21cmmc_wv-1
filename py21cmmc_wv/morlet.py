@@ -3,38 +3,57 @@ import glob
 import os
 
 import numpy as np
+from multiprocessing import cpu_count
 
-
-def morlet_transform_c(data, nu, convergence_extent=10.0, fourier_b = 1, vol_norm=False):
+def morlet_transform_c(data, nu, convergence_extent=10.0, fourier_b = 1,
+                       vol_norm=False, nthreads=None):
     """
-    In current configuration, data can be N-dimensional, but must only be transformed over the *last* dimension.
+    Perform a Morlet Transform using underlying C code.
+
+    Parameters
+    ----------
+    data : array_like, SHAPE=[N_NU, ...]
+        The visibility data on which to perform the Morlet Transform. The
+        transform itself occurs over the first axis.
+    nu : array_like, SHAPE=[N_NU]
+        The frequencies
+    convergence_extent : float, optional
+        How many sigma to integrate the Morlet kernel
+    fourier_b : float, optional
+        Defines the Fourier convention.
+    vol_norm : bool, optional
+        Whether to apply a volume normalisation so that different eta
+        have the same expected power.
+    nthreads : int, optional
+        Number of threads to use in transform. Default is all of them.
+
+    Returns
+    -------
+    complex array, SHAPE=[N_ETA, N_NU, ...]
+        The output transformed visibilities.
     """
     # Build the extension function (this should be negligible performance-wise)
     fl = glob.glob(os.path.join(os.path.dirname(__file__), "ctransforms*"))[0]
 
-    if data.dtype.name == "float64":
-        morlet = ctypes.CDLL(fl).morlet
-        morlet.argtypes = [
-            ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_double, ctypes.c_double,
-            np.ctypeslib.ndpointer(ctypes.c_double, flags="C_CONTIGUOUS"),
-            np.ctypeslib.ndpointer(ctypes.c_double, flags="C_CONTIGUOUS"),
-            np.ctypeslib.ndpointer(ctypes.c_double, flags="C_CONTIGUOUS"),
-            np.ctypeslib.ndpointer("complex128", flags="C_CONTIGUOUS"),
-        ]
-    else:
-        morlet = ctypes.CDLL(fl).cmorlet
-        morlet.argtypes = [
-            ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_double, ctypes.c_double,
-            np.ctypeslib.ndpointer("complex128", flags="C_CONTIGUOUS"),
-            np.ctypeslib.ndpointer(ctypes.c_double, flags="C_CONTIGUOUS"),
-            np.ctypeslib.ndpointer(ctypes.c_double, flags="C_CONTIGUOUS"),
-            np.ctypeslib.ndpointer("complex128", flags="C_CONTIGUOUS"),
-        ]
+    morlet = ctypes.CDLL(fl).cmorlet
+    morlet.argtypes = [
+        ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_double, ctypes.c_double,
+        np.ctypeslib.ndpointer("complex128", flags="C_CONTIGUOUS"),
+        np.ctypeslib.ndpointer(ctypes.c_double, flags="C_CONTIGUOUS"),
+        np.ctypeslib.ndpointer(ctypes.c_double, flags="C_CONTIGUOUS"),
+        ctypes.c_int,
+        np.ctypeslib.ndpointer("complex128", flags="C_CONTIGUOUS"),
+    ]
+
+    if nthreads is None:
+        nthreads = cpu_count()
+
+    assert nthreads <= cpu_count()
 
     # Get data into shape (everything_else, len(nu))
     orig_shape = data.shape
-    n_nu = orig_shape[-1]
-    n_data = int(np.product(orig_shape[:-1]))
+    n_nu = orig_shape[0]
+    n_data = int(np.product(orig_shape[1:]))
 
     assert n_nu == len(nu)
     data = data.flatten()
@@ -47,14 +66,17 @@ def morlet_transform_c(data, nu, convergence_extent=10.0, fourier_b = 1, vol_nor
 
     out = np.zeros(n_data * n_nu * n_eta, dtype=np.complex128)
 
-    morlet(n_data, n_nu, n_eta, float(convergence_extent), fourier_b, np.ascontiguousarray(data), nu, eta, out)
+    morlet(n_data, n_nu, n_eta, float(convergence_extent), fourier_b,
+           np.ascontiguousarray(data), nu, eta, nthreads, out)
 
     if vol_norm:
         norm = np.sqrt(np.abs(eta)) * dnu * np.pi ** (-1. / 4)
     else:
         norm = dnu
 
-    return norm * out.reshape(orig_shape + (len(eta),)), eta, nu
+    out = norm * out.reshape((len(eta),) + orig_shape) # Make the array.
+
+    return out, eta, nu
 
 
 def morlet_transform(data, t, fourier_b=1):
