@@ -98,12 +98,16 @@ void cmorlet(unsigned int ndata, unsigned int n_nu, unsigned int n_eta,
             jmin = fmax(0, jnuc-thisn);
             jmax = fmin(jnuc+thisn, n_nu);
 
+
             data_idx = 0;
             for (jnu=jmin; jnu<jmax; jnu++){ // Loop through nu (i.e. do the FT)
                 exponent = eta[jeta]*(nu[jnu] - nu[jnuc]);
                 xx = cexp(-exponent*(exponent/2 + fourier_b*I));
                 
                 for (ix=0;ix<ndata;ix++){  // Loop through different data
+                    if(j_idx + out_idx > n_eta*n_nu*ndata){
+                        printf("Out of bounds on: jeta=%d, jnuc=%d, jnu=%d, ix=%d, jidx=%d, out_idx=%d", jeta, jnuc, jnu, ix, jidx, out_idx);
+                    }
                     out[jidx + out_idx] += data[data_idx]*xx;
                     data_idx++;
                     out_idx++;
