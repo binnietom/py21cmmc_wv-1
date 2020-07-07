@@ -21,6 +21,24 @@ def read(*names, **kwargs):
         encoding=kwargs.get('encoding', 'utf8')
     ).read()
 
+
+# Set the C-code logging level.
+# If DEBUG is set, we default to the highest level, but if not,
+# we set it to the level just above no logging at all.
+log_level = os.environ.get("LOG_LEVEL", 3 if "DEBUG" in os.environ else 1)
+available_levels = ["NONE","ERROR", "WARNING", "INFO", "DEBUG", "SUPER_DEBUG", "ULTRA_DEBUG"]
+
+
+if isinstance(log_level, str) and log_level.upper() in available_levels:
+    log_level = available_levels.index(log_level.upper())
+
+try:
+    log_level = int(log_level)
+except ValueError:
+    # note: for py35 support, can't use f strings.
+    raise ValueError("LOG_LEVEL must be specified as a positive integer, or one of {}".format(available_levels))
+
+
 setup(
     name='py21cmmc_wv',
     version='0.1.0',
@@ -72,7 +90,8 @@ setup(
        Extension(
             'py21cmmc_wv.ctransforms',
             ['py21cmmc_wv/transforms.c'],
-            extra_compile_args = ['-Ofast', '-fopenmp']
+            extra_compile_args = ['-Ofast', '-fopenmp', "-DLOG_LEVEL=%s"%log_level],
+
         ),
     ],
 )

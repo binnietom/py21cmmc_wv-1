@@ -42,7 +42,7 @@ class LikelihoodWaveletsMorlet(likelihood.LikelihoodBaseFile):
         )
 
     @staticmethod
-    def compute_wavelets(lightcone, bins):
+    def compute_mps(lightcone, bins=None, nthreads=None):
 
         # First get "visibilities"
         vis, kperp = fft(lightcone.brightness_temp, L=lightcone.user_params.BOX_LEN, axes=(0, 1))
@@ -50,7 +50,7 @@ class LikelihoodWaveletsMorlet(likelihood.LikelihoodBaseFile):
         # vis has shape (HII_DIM, HII_DIM, lightcone_dim)
 
         # Do wavelet transform
-        wvlts, kpar, _ = morlet_transform_c(vis.T, lightcone.lightcone_coords)
+        wvlts, kpar, _ = morlet_transform_c(vis.T, lightcone.lightcone_coords, nthreads=nthreads)
 
         # wvlts has shape (len(kpar) + vis.T.shape) corresponding to (eta, nu_c, u,v)
 
@@ -72,7 +72,7 @@ class LikelihoodWaveletsMorlet(likelihood.LikelihoodBaseFile):
 
     def compute_covariance(self, wvlts, kpar, dist):
 
-        # wvlts (from compute_wavelets) has shape (Nkperp, Nkpar, Nz).
+        # wvlts (from compute_mps) has shape (Nk, Nz).
         # only the Nz will correlate (on the assumption that power is independent in each mode).
 
         cov = []
@@ -87,7 +87,7 @@ class LikelihoodWaveletsMorlet(likelihood.LikelihoodBaseFile):
         return cov
 
     def reduce_data(self, ctx):
-        wvlt, k, centres = self.compute_wavelets(ctx.get("lightcone"), self.bins)
+        wvlt, k, centres = self.compute_mps(ctx.get("lightcone"), self.bins)
         return [dict(wavelets=wvlt, k=k, centres=centres)]
 
     @property

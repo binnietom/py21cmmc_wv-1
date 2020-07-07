@@ -5,6 +5,10 @@ import os
 import numpy as np
 from multiprocessing import cpu_count
 
+# Build the extension function (this should be negligible performance-wise)
+fl = glob.glob(os.path.join(os.path.dirname(__file__), "ctransforms*"))[0]
+
+
 def morlet_transform_c(data, nu, convergence_extent=10.0, fourier_b = 1,
                        vol_norm=False, nthreads=None):
     """
@@ -32,9 +36,6 @@ def morlet_transform_c(data, nu, convergence_extent=10.0, fourier_b = 1,
     complex array, SHAPE=[N_ETA, N_NU, ...]
         The output transformed visibilities.
     """
-    # Build the extension function (this should be negligible performance-wise)
-    fl = glob.glob(os.path.join(os.path.dirname(__file__), "ctransforms*"))[0]
-
     morlet = ctypes.CDLL(fl).cmorlet
     morlet.argtypes = [
         ctypes.c_uint, ctypes.c_uint, ctypes.c_uint, ctypes.c_double, ctypes.c_double,
@@ -56,7 +57,7 @@ def morlet_transform_c(data, nu, convergence_extent=10.0, fourier_b = 1,
     n_data = int(np.product(orig_shape[1:]))
 
     assert n_nu == len(nu)
-    data = data.flatten()
+    data = np.ascontiguousarray(data.flatten())
 
     dnu = (nu.max() - nu.min()) / (n_nu - 1)
     L = n_nu * dnu
@@ -67,12 +68,13 @@ def morlet_transform_c(data, nu, convergence_extent=10.0, fourier_b = 1,
     out = np.zeros(n_data * n_nu * n_eta, dtype=np.complex128)
 
     morlet(n_data, n_nu, n_eta, float(convergence_extent), fourier_b,
-           np.ascontiguousarray(data), nu, eta, nthreads, out)
+           data, nu, eta, nthreads, out)
 
     if vol_norm:
         norm = np.sqrt(np.abs(eta)) * dnu * np.pi ** (-1. / 4)
     else:
         norm = dnu
+    print(out[350])
 
     out = norm * out.reshape((len(eta),) + orig_shape) # Make the array.
 

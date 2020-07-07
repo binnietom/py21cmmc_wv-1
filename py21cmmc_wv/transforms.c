@@ -3,6 +3,7 @@
 #include <math.h>
 #include <complex.h>
 #include <omp.h>
+#include "logger.h"
 
 //void morlet(int ndata, int n_nu, int n_eta, double conv_ext, double fourier_b,
 //            double *data, double *nu, double *eta, double complex *out){
@@ -31,6 +32,14 @@
 //        }
 //    }
 //}
+
+inline int max(int a, int b) {
+    return a > b ? a : b;
+}
+
+inline int min(int a, int b) {
+    return a < b ? a : b;
+}
 
 void cmorlet(unsigned int ndata, unsigned int n_nu, unsigned int n_eta,
              double conv_ext, double fourier_b,
@@ -75,15 +84,19 @@ void cmorlet(unsigned int ndata, unsigned int n_nu, unsigned int n_eta,
             The resulting Morlet transform.
     */
 
-    unsigned int ix, jnuc,jeta, jnu, thisn, jidx, jmin, jmax;
+    unsigned int ix, jnuc,jeta, jnu,  jidx, jmin, jmax;
     double exponent;
     double complex xx;
+
+    int thisn;
 
     double sqrt2 = sqrt(2.0);
     unsigned int out_idx = 0;
     unsigned int data_idx = 0;
 
     double sqrt2dnu = sqrt2*(nu[1] - nu[0]);
+
+    omp_set_num_threads(nthreads);
 
     #pragma omp parallel for private(thisn, jidx, out_idx, jnuc, jmin, jmax, data_idx, exponent, xx, jnu, ix)
     for (jeta=0; jeta<n_eta;jeta++){ // Loop through eta
@@ -94,26 +107,38 @@ void cmorlet(unsigned int ndata, unsigned int n_nu, unsigned int n_eta,
         jidx = jeta * n_nu * ndata;
         out_idx = 0;
 
+        LOG_DEBUG("jeta=%d, jidx=%d, thisn=%d", jeta, jidx, thisn);
+
         for (jnuc=0;jnuc<n_nu;jnuc++){ // Loop through nu_centre
-            jmin = fmax(0, jnuc-thisn);
-            jmax = fmin(jnuc+thisn, n_nu);
+            jmin = max(0, jnuc-thisn);
+            jmax = min(jnuc+thisn, n_nu);
 
 
-            data_idx = 0;
+            data_idx = jmin*ndata;
+
+            LOG_SUPER_DEBUG("jnuc=%d, jmin=%d, jmax=%d", jnuc, jmin, jmax);
+
             for (jnu=jmin; jnu<jmax; jnu++){ // Loop through nu (i.e. do the FT)
                 exponent = eta[jeta]*(nu[jnu] - nu[jnuc]);
                 xx = cexp(-exponent*(exponent/2 + fourier_b*I));
-                
+
                 for (ix=0;ix<ndata;ix++){  // Loop through different data
-                    if(jidx + out_idx > n_eta*n_nu*ndata){
-                        printf("Out of bounds on: jeta=%d, jnuc=%d, jnu=%d, ix=%d, jidx=%d, out_idx=%d", jeta, jnuc, jnu, ix, jidx, out_idx);
-                    }
+//                    if(jidx + out_idx >= n_eta*n_nu*ndata){
+//                        printf("Out of bounds on: jeta=%d, jnuc=%d, jnu=%d, ix=%d, jidx=%d, out_idx=%d\n", jeta, jnuc, jnu, ix, jidx, out_idx);
+//                    }
+
+
                     out[jidx + out_idx] += data[data_idx]*xx;
+
+                    if(jeta==(n_eta-1) && jnuc==(n_nu-1) && ix==(ndata-1))
+                      LOG_ULTRA_DEBUG("\t\tjnu=%d ix=%d indx=%d jidx=%d, out_idx=%d, data=%g + %gi xx=%g out=%g + %gi", jnu, ix, jidx+out_idx, jidx, out_idx, creal(data[data_idx]), cimag(data[data_idx]), xx, creal(out[jidx + out_idx]), cimag(out[jidx + out_idx]));
+
                     data_idx++;
                     out_idx++;
                 }
                 out_idx -= ndata; // out_idx should not contain jnu, so reset it.
             }
+            out_idx += ndata;
         }
     }
 }
