@@ -57,7 +57,7 @@ def morlet_transform_c(data, nu, convergence_extent=10.0, fourier_b = 1,
         morlet = ctypes.CDLL(fl).BlackmanHarris_cmorlet
         morlet.argtypes = [
             ctypes.c_uint, ctypes.c_uint, ctypes.c_uint, ctypes.c_double,
-            np.ctypeslib.ndpointer(ctypes.c_double flags="C_CONTIGUOUS"),
+            np.ctypeslib.ndpointer(ctypes.c_double, flags="C_CONTIGUOUS"),
             np.ctypeslib.ndpointer("complex128", flags="C_CONTIGUOUS"),
             np.ctypeslib.ndpointer(ctypes.c_double, flags="C_CONTIGUOUS"),
             np.ctypeslib.ndpointer(ctypes.c_double, flags="C_CONTIGUOUS"),
@@ -102,7 +102,7 @@ def morlet_transform_c(data, nu, convergence_extent=10.0, fourier_b = 1,
         norm = np.sqrt(np.abs(eta)) * dnu * np.pi ** (-1. / 4)
     else:
         norm = dnu
-    print(out[350])
+    #print(out[350])
 
     out = norm * out.reshape((len(eta),) + orig_shape) # Make the array.
 

@@ -72,8 +72,8 @@ class LikelihoodWaveletsMorlet(likelihood.LikelihoodBaseFile):
                 return np.inf
             else:
                 lnL += L
-            #print("\n likelihood for chunk ", i, " is ", L)
-        #print("\n total Likelihood: ", lnL, "\n")
+            print("\n likelihood for chunk ", i, " is ", L)
+        print("\n total Likelihood: ", lnL, "\n")
         return lnL
 
     @staticmethod
@@ -109,7 +109,7 @@ class LikelihoodWaveletsMorlet(likelihood.LikelihoodBaseFile):
             #print(f"\n visibility inputs: \n Tb: {lightcone.brightness_temp[:, :, start:end].shape} , \n Box:  {lightcone.user_params.BOX_LEN} \n \n")
 
             # First get "visibilities" with shape (HII_DIM, HII_DIM, lightcone_dim)
-            vis, kperp = fft(lightcone.brightness_temp[:, :, start:end], L=lightcone.user_params.BOX_LEN, axes=(0, 1))
+            vis, kperp = fft(lightcone.brightness_temp[::stride, ::stride, start:end], L=lightcone.user_params.BOX_LEN, axes=(0, 1))
 
             #print("\n chunk:", i," visibilities done  \n")
             centres = lightcone.lightcone_coords[start:end]
@@ -117,7 +117,7 @@ class LikelihoodWaveletsMorlet(likelihood.LikelihoodBaseFile):
             #print("\n chunk:", i," entering MPS \n")
             # Do wavelet transform
             print(f'Using BlackmanHarris Filter? {BHF}')
-            wvlts, kpar, _ = morlet_transform_c(vis.T, centres, convergence_extent=integral_width, nthreads=nthreads, stride = stride, BHF=BHF)
+            wvlts, kpar, _ = morlet_transform_c(vis.T, centres, convergence_extent=integral_width, nthreads=nthreads, BHF=BHF)
             #print("\n chunk:", i," MPS done  \n")
             # Now remove complex.
             wvlts = np.abs(wvlts) ** 2
@@ -212,7 +212,7 @@ class LikelihoodWaveletsMorlet(likelihood.LikelihoodBaseFile):
     def reduce_data(self, ctx):
         #wvlt, kperp_mod, kpar,  centres = self.compute_mps(ctx.get("lightcone"), self.bins, stride = self.stride)
         #return [dict(wavelets=wvlt, kperp_mod=kperp_mod, kpar=kpar, centres=centres)]
-        return self.compute_mps(ctx.get("lightcone"), self.bins, nchunks = self.nchunks, stride = self.stride)
+        return self.compute_mps(ctx.get("lightcone"), self.bins, nchunks = self.nchunks, stride = self.stride, BHF = self.BHF)
 
     @property
     def lightcone_module(self):
