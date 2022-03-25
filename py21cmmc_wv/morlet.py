@@ -2,6 +2,9 @@ import ctypes
 import glob
 import os
 
+from scipy.signal.windows import blackmanharris
+#from scipy.fft import fft, fftshift
+
 import numpy as np
 from multiprocessing import cpu_count
 
@@ -10,7 +13,7 @@ fl = glob.glob(os.path.join(os.path.dirname(__file__), "ctransforms*"))[0]
 
 
 def morlet_transform_c(data, nu, convergence_extent=10.0, fourier_b = 1,
-                       vol_norm=False, nthreads=None):
+                       vol_norm=False, nthreads=None, BHF=False):
     """
     Perform a Morlet Transform using underlying C code.
 
@@ -30,21 +33,37 @@ def morlet_transform_c(data, nu, convergence_extent=10.0, fourier_b = 1,
         have the same expected power.
     nthreads : int, optional
         Number of threads to use in transform. Default is all of them.
+    BHF : bool, optional
+        Use a BlackmanHarris Filter (True) instead of a Gaussian (False) in the wavelets.
 
     Returns
     -------
     complex array, SHAPE=[N_ETA, N_NU, ...]
         The output transformed visibilities.
     """
-    morlet = ctypes.CDLL(fl).cmorlet
-    morlet.argtypes = [
-        ctypes.c_uint, ctypes.c_uint, ctypes.c_uint, ctypes.c_double, ctypes.c_double,
-        np.ctypeslib.ndpointer("complex128", flags="C_CONTIGUOUS"),
-        np.ctypeslib.ndpointer(ctypes.c_double, flags="C_CONTIGUOUS"),
-        np.ctypeslib.ndpointer(ctypes.c_double, flags="C_CONTIGUOUS"),
-        ctypes.c_int,
-        np.ctypeslib.ndpointer("complex128", flags="C_CONTIGUOUS"),
-    ]
+
+
+    if BHF == False:
+        morlet = ctypes.CDLL(fl).cmorlet
+        morlet.argtypes = [
+            ctypes.c_uint, ctypes.c_uint, ctypes.c_uint, ctypes.c_double, ctypes.c_double,
+            np.ctypeslib.ndpointer("complex128", flags="C_CONTIGUOUS"),
+            np.ctypeslib.ndpointer(ctypes.c_double, flags="C_CONTIGUOUS"),
+            np.ctypeslib.ndpointer(ctypes.c_double, flags="C_CONTIGUOUS"),
+            ctypes.c_int,
+            np.ctypeslib.ndpointer("complex128", flags="C_CONTIGUOUS"),
+        ]
+    if BHF == True:
+        morlet = ctypes.CDLL(fl).BlackmanHarris_cmorlet
+        morlet.argtypes = [
+            ctypes.c_uint, ctypes.c_uint, ctypes.c_uint, ctypes.c_double,
+            np.ctypeslib.ndpointer(ctypes.c_double flags="C_CONTIGUOUS"),
+            np.ctypeslib.ndpointer("complex128", flags="C_CONTIGUOUS"),
+            np.ctypeslib.ndpointer(ctypes.c_double, flags="C_CONTIGUOUS"),
+            np.ctypeslib.ndpointer(ctypes.c_double, flags="C_CONTIGUOUS"),
+            ctypes.c_int,
+            np.ctypeslib.ndpointer("complex128", flags="C_CONTIGUOUS"),
+        ]
 
     if nthreads is None:
         nthreads = cpu_count()
@@ -67,8 +86,17 @@ def morlet_transform_c(data, nu, convergence_extent=10.0, fourier_b = 1,
 
     out = np.zeros(n_data * n_nu * n_eta, dtype=np.complex128)
 
-    morlet(n_data, n_nu, n_eta, float(convergence_extent), fourier_b,
-           data, nu, eta, nthreads, out)
+    if BHF == False:
+        morlet(n_data, n_nu, n_eta, float(convergence_extent), fourier_b,
+            data, nu, eta, nthreads, out)
+
+    if BHF == True:
+        #Do we want the window or the frequency response? - I think frequency response, transform.c is all nu and eta.
+        #BHF_FFT = fft(window, 2048) / (len(window)/2.0)
+        #freq = np.linspace(-0.5, 0.5, len(A))
+        #response = 20 * np.log10(np.abs(fftshift(A / abs(A).max())))
+        morlet(n_data, n_nu, n_eta, float(convergence_extent), blackmanharris(n_nu),
+            data, nu, eta, nthreads, out)
 
     if vol_norm:
         norm = np.sqrt(np.abs(eta)) * dnu * np.pi ** (-1. / 4)
