@@ -191,8 +191,6 @@ void BlackmanHarris_cmorlet(unsigned int ndata, unsigned int n_nu, unsigned int 
             for (jnu=jmin; jnu<jmax; jnu++){ // Loop through nu (i.e. do the FT)
                 exponent = eta[jeta]*(nu[jnu] - nu[jnuc]);
                 //xx = cexp(-exponent*(exponent/2 + fourier_b*I)); // --Filter change Fourier to blackmanharris.
-                BlackmanHarris = ;
-
                 //general_cosine(M, [0.35875, 0.48829, 0.14128, 0.01168], sym)
                 xx = cexp(-exponent*exponent/2 - BlackmanHarrisFilter[jnuc]);
 
