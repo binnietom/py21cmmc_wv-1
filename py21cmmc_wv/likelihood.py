@@ -72,8 +72,8 @@ class LikelihoodWaveletsMorlet(likelihood.LikelihoodBaseFile):
                 return np.inf
             else:
                 lnL += L
-            print("\n likelihood for chunk ", i, " is ", L)
-        print("\n total Likelihood: ", lnL, "\n")
+            #print("\n likelihood for chunk ", i, " is ", L)
+        #print("\n total Likelihood: ", lnL, "\n")
         return lnL
 
     @staticmethod
@@ -116,7 +116,7 @@ class LikelihoodWaveletsMorlet(likelihood.LikelihoodBaseFile):
             centres = centres[::stride] ## so if stride = 1 and nchunks = 1 centres = array of every pixel along the lightcone.
             #print("\n chunk:", i," entering MPS \n")
             # Do wavelet transform
-            print(f'Using BlackmanHarris Filter? {BHF}')
+            #print(f'Using BlackmanHarris Filter? {BHF}')
             wvlts, kpar, _ = morlet_transform_c(vis.T, centres, convergence_extent=integral_width, nthreads=nthreads, BHF=BHF)
             #print("\n chunk:", i," MPS done  \n")
             # Now remove complex.
