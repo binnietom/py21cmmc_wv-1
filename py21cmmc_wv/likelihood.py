@@ -39,7 +39,7 @@ class LikelihoodWaveletsMorlet(likelihood.LikelihoodBaseFile):
         we have w,k,k,c in a dictionary per chunk.
         """
         lnL=0
-        print("\n got to likelihood \n")
+        #print("\n got to likelihood \n")
         for i in range(self.nchunks): #loop through chunks# stack likelihood.
             mu = model[i]['wavelets']
             x = self.data[i]['wavelets']
@@ -54,12 +54,12 @@ class LikelihoodWaveletsMorlet(likelihood.LikelihoodBaseFile):
                     cov=covariance,
                 )
             if (self.cov != 'est'):
-                print(f"loading cov {i}")
+                #print(f"loading cov {i}")
                 if (self.nchunks == 3):
                     covariance = np.load(f"{self.cov}chunk_{i}.npy", allow_pickle=True)
                 if (self.nchunks == 1):
                     covariance = np.load(f"{self.cov}.npy", allow_pickle=True)
-                print("loaded cov")
+                #print("loaded cov")
                 L = loaded_lognormpdf( #lognormpdf2(
                     x=x.reshape((-1, x.shape[-1])),
                     mu=mu.reshape((-1, mu.shape[-1])),
@@ -71,8 +71,8 @@ class LikelihoodWaveletsMorlet(likelihood.LikelihoodBaseFile):
                 return np.inf
             else:
                 lnL += L
-            print("\n likelihood for chunk ", i, " is ", L)
-        print("\n total Likelihood: ", lnL, "\n")
+            #print("\n likelihood for chunk ", i, " is ", L)
+        #print("\n total Likelihood: ", lnL, "\n")
         return lnL
 
     @staticmethod
@@ -82,7 +82,7 @@ class LikelihoodWaveletsMorlet(likelihood.LikelihoodBaseFile):
         This is structured so that the old compute_mps function is now compute_mt so that any compute_mps references don't break
         If no chunks inputted, nchunks = 1, the whole lightcone is one chunk (equivalent to no chunking).
         """
-        print("\n chunks: ", nchunks)
+        #print("\n chunks: ", nchunks)
         data = []
         chunk_indices = list(range(0,lightcone.n_slices,round(lightcone.n_slices / nchunks),))
 
@@ -90,7 +90,7 @@ class LikelihoodWaveletsMorlet(likelihood.LikelihoodBaseFile):
             chunk_indices = chunk_indices[:-1]
         chunk_indices.append(lightcone.n_slices)
 
-        print("\n entering chunk loop \n")
+        #print("\n entering chunk loop \n")
         for i in range(nchunks):
             start = chunk_indices[i]
 
@@ -104,26 +104,26 @@ class LikelihoodWaveletsMorlet(likelihood.LikelihoodBaseFile):
 
             #wvlts, kperp_mod, kpar, centres = compute_mt(lightcone.lightcone_coords[start:end])
             # ^this was buggy, just put old-code here Tom - wanted to avoid passing lightcones
-            print("\n chunk:", i," starting visibilities  \n")
-            print(f"\n visibility inputs: \n Tb: {lightcone.brightness_temp[:, :, start:end].shape} , \n Box:  {lightcone.user_params.BOX_LEN} \n \n")
+            #print("\n chunk:", i," starting visibilities  \n")
+            #print(f"\n visibility inputs: \n Tb: {lightcone.brightness_temp[:, :, start:end].shape} , \n Box:  {lightcone.user_params.BOX_LEN} \n \n")
 
             # First get "visibilities" with shape (HII_DIM, HII_DIM, lightcone_dim)
             vis, kperp = fft(lightcone.brightness_temp[:, :, start:end], L=lightcone.user_params.BOX_LEN, axes=(0, 1))
 
-            print("\n chunk:", i," visibilities done  \n")
+            #print("\n chunk:", i," visibilities done  \n")
             centres = lightcone.lightcone_coords[start:end]
             centres = centres[::stride] ## so if stride = 1 and nchunks = 1 centres = array of every pixel along the lightcone.
-            print("\n chunk:", i," entering MPS \n")
+            #print("\n chunk:", i," entering MPS \n")
             # Do wavelet transform
             wvlts, kpar, _ = morlet_transform_c(vis.T, centres, convergence_extent=integral_width, nthreads=nthreads, stride = stride)
-            print("\n chunk:", i," MPS done  \n")
+            #print("\n chunk:", i," MPS done  \n")
             # Now remove complex.
             wvlts = np.abs(wvlts) ** 2
             # Determine a nice number of bins >70 or wavelet form changes.
             if bins is None:
                 bins = int(49) ##why?
 
-            print("\n chunk:", i," averaging  \n")
+            #print("\n chunk:", i," averaging  \n")
             #before angularly average wavelets (transpose) has shape (kperp, kperp, kparr, centres)
             wvlts, kperp_mod = angular_average_nd(
                 wvlts.transpose((2, 3, 0, 1)),
@@ -132,7 +132,7 @@ class LikelihoodWaveletsMorlet(likelihood.LikelihoodBaseFile):
             )
             #n=2 takes angular average of first two inputs, which when wavelet is transposed is k_par,k_par.
             #wvlts now has shape (kperpmod, k_par, centres)
-            print("\n chunk:", i," appending dictionary with averaged MPS  \n")
+            #print("\n chunk:", i," appending dictionary with averaged MPS  \n")
             data.append({"wavelets": wvlts, "kperp_mod": kperp_mod, "kpar": kpar, "centres": centres})
         return np.array(data)
 
@@ -202,7 +202,7 @@ class LikelihoodWaveletsMorlet(likelihood.LikelihoodBaseFile):
                     cov[ik,jk] = np.mean(np.dot(FPSs[:,ik],FPSs[:,jk])) - np.mean(FPSs[:,ik])*np.mean(FPSs[:,jk])
                     if (m.isnan(cov[ik,jk])): #when an array has nan's they are all nans - set to zero for plotting.
                         cov[ik,jk] = 0
-                        print(" FPSs array has nans (chunk, k)  (", ichunk," ,  " , ik , ") ")
+                        #print(" FPSs array has nans (chunk, k)  (", ichunk," ,  " , ik , ") ")
             covs.append(cov)
         return np.array(covs)/len(fps_realisation)
 
