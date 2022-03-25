@@ -22,7 +22,7 @@ class LikelihoodWaveletsMorlet(likelihood.LikelihoodBaseFile):
     """
     required_cores = [core.CoreLightConeModule]
 
-    def __init__(self, bins=None, nchunks=1, model_uncertainty=1., stride=1, cov='est', **kwargs):
+    def __init__(self, bins=None, nchunks=1, model_uncertainty=1., stride=1, cov='est', BHF=False, **kwargs):
         super().__init__(**kwargs)
 
         self.bins = bins
@@ -30,6 +30,7 @@ class LikelihoodWaveletsMorlet(likelihood.LikelihoodBaseFile):
         self.stride = stride
         self.nchunks = nchunks
         self.cov = cov
+        self.BHF = BHF
         #Covariance will be estimated if 'est'; to load the covariance put cov='the path and file name'(-.npy).
 
     def computeLikelihood(self, model):
@@ -76,7 +77,7 @@ class LikelihoodWaveletsMorlet(likelihood.LikelihoodBaseFile):
         return lnL
 
     @staticmethod
-    def compute_mps(lightcone, bins=None, nthreads=None, nchunks=1, stride=1, integral_width=5):
+    def compute_mps(lightcone, bins=None, nthreads=None, nchunks=1, stride=1, integral_width=5, BHF=False):
         """
         computing the mps on chunks of the lightcone - stacked in an array just like 21cmmc does for the FPS
         This is structured so that the old compute_mps function is now compute_mt so that any compute_mps references don't break
@@ -115,7 +116,8 @@ class LikelihoodWaveletsMorlet(likelihood.LikelihoodBaseFile):
             centres = centres[::stride] ## so if stride = 1 and nchunks = 1 centres = array of every pixel along the lightcone.
             #print("\n chunk:", i," entering MPS \n")
             # Do wavelet transform
-            wvlts, kpar, _ = morlet_transform_c(vis.T, centres, convergence_extent=integral_width, nthreads=nthreads, stride = stride)
+            print(f'Using BlackmanHarris Filter? {BHF}')
+            wvlts, kpar, _ = morlet_transform_c(vis.T, centres, convergence_extent=integral_width, nthreads=nthreads, stride = stride, BHF=BHF)
             #print("\n chunk:", i," MPS done  \n")
             # Now remove complex.
             wvlts = np.abs(wvlts) ** 2
